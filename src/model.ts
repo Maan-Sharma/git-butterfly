@@ -13,11 +13,19 @@ export interface Lang {
   weight: number;
 }
 
+/** A language and how many of the user's repositories use it as their main language. */
+export interface RepoLang {
+  name: string;
+  color: string; // "#rrggbb", the real GitHub color
+  count: number;
+}
+
 export interface Stats {
   login: string;
   total: number; // lifetime contributions
   streak: number; // current daily streak
-  languages: Lang[];
+  languages: Lang[]; // drives the wing colors
+  repoLanguages?: RepoLang[]; // drives the legend (languages by repo count)
 }
 
 export interface Growth {
@@ -43,6 +51,16 @@ export function growth(total: number, thresholds: Thresholds = DEFAULT_THRESHOLD
   if (total < c) return { stage: "cocoon", progress: (total - b) / (c - b), scale: 1 };
   const p = Math.min(1, (total - c) / Math.max(1, FULL_SIZE_AT - c));
   return { stage: "butterfly", progress: p, scale: 0.75 + 0.6 * p };
+}
+
+/** The languages worth showing by name: biggest first, tiny ones dropped. Empty when there is no real data. */
+export function topLangs(langs: Lang[], max = 6): Lang[] {
+  const real = langs.filter((l) => l.name !== "default");
+  const total = real.reduce((s, l) => s + l.weight, 0) || 1;
+  return real
+    .filter((l) => l.weight / total >= 0.03)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, max);
 }
 
 /**

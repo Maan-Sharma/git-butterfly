@@ -85,6 +85,14 @@ export function prettify(rgb: RGB, name = ""): RGB {
   return hsvToRgb(h, s, v);
 }
 
+/** The real GitHub color of a language as "#rrggbb" (not brightened), used by the legend. */
+export function rawLanguageColor(name: string, hex?: string | null): string {
+  if (hex) return hex;
+  if (LINGUIST[name]) return LINGUIST[name];
+  const [r, g, b] = hsvToRgb(hashHue(name), 0.7, 0.9);
+  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
 export function languageColor(name: string, hex?: string | null): RGB {
   let base: RGB;
   if (hex) base = hexToRgb(hex);

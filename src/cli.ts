@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { FetchError, fetchStats } from "./fetch.js";
 import { encodeGif } from "./gif.js";
+import { legendFromWeights, renderLegend } from "./legend.js";
 import { DEFAULT_THRESHOLDS, growth, type Lang, type Stats, type Thresholds } from "./model.js";
 import { languageColor } from "./palette.js";
 import { renderFrames } from "./render.js";
@@ -28,6 +29,7 @@ Options
   --streak N          override streak days
   --langs LIST        override languages, e.g. "Python:50,Rust:30,Go:20"
   --sheet PATH        also write a PNG showing every life stage
+  --legend PATH       also write the "Languages by repo count" card as an SVG
 `;
 
 export function parseLangs(text: string): Lang[] {
@@ -60,6 +62,7 @@ async function main(): Promise<number> {
       streak: { type: "string" },
       langs: { type: "string" },
       sheet: { type: "string" },
+      legend: { type: "string" },
       help: { type: "boolean", short: "h", default: false },
     },
   });
@@ -100,6 +103,14 @@ async function main(): Promise<number> {
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, encodeGif(renderFrames(stats, g), Number(values.scale)));
   if (values.sheet) makeSheet(resolve(values.sheet), stats.languages);
+  if (values.legend) {
+    const legendPath = resolve(values.legend);
+    mkdirSync(dirname(legendPath), { recursive: true });
+    // --langs overrides everything; otherwise use real repo counts, falling back to the wing weights.
+    const repoLangs = values.langs || !stats.repoLanguages ? legendFromWeights(stats.languages) : stats.repoLanguages;
+    writeFileSync(legendPath, renderLegend(repoLangs));
+    console.log(`wrote ${values.legend}`);
+  }
 
   const top = [...stats.languages].sort((a, b) => b.weight - a.weight).slice(0, 4).map((l) => l.name).join(", ") || "none yet";
   console.log(

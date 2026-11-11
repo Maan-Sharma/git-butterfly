@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { currentStreak } from "../src/fetch.js";
-import { growth, wingBands } from "../src/model.js";
+import { growth, topLangs, wingBands } from "../src/model.js";
 import { languageColor } from "../src/palette.js";
+import { renderLegend } from "../src/legend.js";
 import { FRAMES, renderFrames } from "../src/render.js";
 import { encodeGif } from "../src/gif.js";
 
@@ -53,6 +54,39 @@ test("streak counts back from today, or from yesterday if today is empty", () =>
   assert.equal(currentStreak(days, today), 3);
   assert.equal(currentStreak([["2026-11-11", 0], ["2026-11-10", 1], ["2026-11-09", 1]], today), 2);
   assert.equal(currentStreak([["2026-11-11", 0], ["2026-11-10", 0]], today), 0);
+});
+
+test("legend shows every language with its real color and percentages", () => {
+  const svg = renderLegend([
+    { name: "Python", color: "#3572A5", count: 8 },
+    { name: "JavaScript", color: "#f1e05a", count: 5 },
+    { name: "C", color: "#555555", count: 3 },
+    { name: "Java", color: "#b07219", count: 2 },
+    { name: "Rust", color: "#dea584", count: 1 },
+    { name: "TypeScript", color: "#3178c6", count: 1 },
+  ]);
+  assert.ok(svg.startsWith("<svg") && svg.trimEnd().endsWith("</svg>"));
+  assert.ok(svg.includes("Python 40.00%") && svg.includes("JavaScript 25.00%") && svg.includes("Rust 5.00%"));
+  assert.ok(svg.includes('fill="#555555"'), "keeps the real grey for C");
+});
+
+test("legend groups extra languages into Other and escapes names", () => {
+  const many = Array.from({ length: 14 }, (_, i) => ({ name: `L${i}`, color: "#123456", count: 14 - i }));
+  assert.ok(renderLegend(many).includes("Other"));
+  assert.ok(renderLegend([{ name: "C<&>", color: "#123456", count: 1 }]).includes("C&lt;&amp;&gt;"));
+  assert.ok(renderLegend([]).includes("No languages yet"));
+});
+
+test("caterpillar shows name tags for her languages, not for the default palette", () => {
+  const langs = ["Python", "JavaScript", "C", "Java", "Rust", "TypeScript"].map((n, i) => ({
+    name: n, color: languageColor(n), weight: 40 - i * 5,
+  }));
+  assert.equal(topLangs(langs).length, 6);
+  assert.equal(topLangs([{ name: "default", color: [1, 2, 3] as [number, number, number], weight: 1 }]).length, 0);
+  const tagged = renderFrames({ login: "t", total: 100, streak: 0, languages: langs }, growth(100), 1)[0];
+  const plain = renderFrames({ login: "t", total: 100, streak: 0, languages: [] }, growth(100), 1)[0];
+  const opaqueBelow = (c: typeof tagged) => c.data.filter((v, i) => i % 4 === 3 && v === 255 && i / 4 >= 74 * 160).length;
+  assert.ok(opaqueBelow(tagged) > opaqueBelow(plain) + 200, "tags add pixels at the bottom");
 });
 
 test("every stage renders a looping transparent GIF", () => {

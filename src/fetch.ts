@@ -1,6 +1,6 @@
 /** Read contribution totals, streak and languages from the GitHub GraphQL API. */
-import type { Lang, Stats } from "./model.js";
-import { languageColor } from "./palette.js";
+import type { Lang, RepoLang, Stats } from "./model.js";
+import { languageColor, rawLanguageColor } from "./palette.js";
 
 const API = "https://api.github.com/graphql";
 
@@ -40,6 +40,31 @@ export function currentStreak(days: Array<[string, number]>, today: Date = new D
     cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
   return streak;
+}
+
+/** Count the user's own (non-fork) repositories per main language, across all pages. */
+async function fetchRepoLanguages(login: string, token: string): Promise<RepoLang[]> {
+  const counts = new Map<string, RepoLang>();
+  let cursor: string | null = null;
+  for (let page = 0; page < 20; page++) {
+    const data: any = await gql(
+      "query($login:String!,$after:String){user(login:$login){repositories(first:100, after:$after, " +
+        "ownerAffiliations:OWNER, isFork:false){pageInfo{hasNextPage endCursor} nodes{primaryLanguage{name color}}}}}",
+      { login, after: cursor },
+      token,
+    );
+    const repos = data.user.repositories;
+    for (const node of repos.nodes) {
+      const lang = node.primaryLanguage;
+      if (!lang) continue;
+      const entry = counts.get(lang.name) ?? { name: lang.name, color: rawLanguageColor(lang.name, lang.color), count: 0 };
+      entry.count++;
+      counts.set(lang.name, entry);
+    }
+    if (!repos.pageInfo.hasNextPage) break;
+    cursor = repos.pageInfo.endCursor;
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
 export async function fetchStats(login: string, token: string): Promise<Stats> {
@@ -102,5 +127,6 @@ export async function fetchStats(login: string, token: string): Promise<Stats> {
     color: languageColor(name, colors.get(name)),
     weight,
   }));
-  return { login, total, streak: currentStreak(days), languages };
+  const repoLanguages = await fetchRepoLanguages(login, token);
+  return { login, total, streak: currentStreak(days), languages, repoLanguages };
 }

@@ -16,6 +16,10 @@ inputs:
     description: Where to write the GIF.
     required: false
     default: butterfly/butterfly.gif
+  legend:
+    description: Where to write the "Languages by repo count" SVG card.
+    required: false
+    default: butterfly/languages.svg
   thresholds:
     description: Contributions needed for caterpillar,cocoon,butterfly.
     required: false
@@ -43,11 +47,13 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         BUTTERFLY_USER: ${{ inputs.username }}
         BUTTERFLY_OUT: ${{ inputs.output }}
+        BUTTERFLY_LEGEND: ${{ inputs.legend }}
         BUTTERFLY_THRESHOLDS: ${{ inputs.thresholds }}
         BUTTERFLY_SCALE: ${{ inputs.scale }}
       run: |
         node "${{ github.action_path }}/dist/cli.js" \
           --user "$BUTTERFLY_USER" \
           --out "$BUTTERFLY_OUT" \
+          --legend "$BUTTERFLY_LEGEND" \
           --thresholds "$BUTTERFLY_THRESHOLDS" \
           --scale "$BUTTERFLY_SCALE"

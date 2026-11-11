@@ -3,7 +3,8 @@
  * Everything is drawn on a tiny RGBA canvas (W x H logical pixels) with hard edges,
  * then scaled up with nearest-neighbour in gif.ts so it stays crisp.
  */
-import { wingBands, type Band, type Growth, type Stats } from "./model.js";
+import { drawText, textWidth, GLYPH_H } from "./font.js";
+import { topLangs, wingBands, type Band, type Growth, type Lang, type Stats } from "./model.js";
 import {
   BODY, BODY_LIGHT, BRANCH, BRANCH_LIGHT, CREAM, GOLD, LEAF, LEAF_DARK, LEAF_LIGHT, OUTLINE, mix, tones,
   type RGB,
@@ -74,10 +75,35 @@ function drawEgg(cv: Canvas, g: Growth, bands: Band[], t: number): void {
 }
 
 // ----------------------------------------------------------------------------- caterpillar
-function drawCaterpillar(cv: Canvas, g: Growth, bands: Band[], t: number): void {
+const TAG_TEXT: RGB = [255, 244, 225];
+const TAG_H = GLYPH_H + 4;
+
+/** Name tags (a colored dot plus the language name) in up to two rows under the branch. */
+function drawLanguageTags(cv: Canvas, langs: Lang[]): void {
+  const perRow = 3;
+  const rows = Math.ceil(langs.length / perRow);
+  for (let row = 0; row < rows; row++) {
+    const items = langs.slice(row * perRow, (row + 1) * perRow);
+    const widths = items.map((l) => 7 + textWidth(l.name.slice(0, 10)) + 3);
+    const gap = 2;
+    let x = Math.round((W - (widths.reduce((s, w) => s + w, 0) + gap * (items.length - 1))) / 2);
+    const y = H - 2 - (rows - row) * TAG_H - (rows - row - 1) * 2;
+    items.forEach((l, i) => {
+      const w = widths[i];
+      cv.rect(x, y, x + w - 1, y + TAG_H - 1, OUTLINE, tones(l.color)[0]);
+      for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) cv.put(x + 2 + dx, y + 3 + dy, l.color);
+      drawText(cv, l.name.slice(0, 10), x + 7, y + 2, TAG_TEXT);
+      x += w + gap;
+    });
+  }
+}
+
+function drawCaterpillar(cv: Canvas, g: Growth, bands: Band[], t: number, langs: Lang[]): void {
   const n = 4 + Math.round(6 * g.progress);
   const r = 4 + 2.5 * g.progress;
-  const by = H - 18;
+  const rows = Math.max(1, Math.ceil(langs.length / 3));
+  const by = langs.length ? H - 12 - rows * (TAG_H + 2) - 4 : H - 18;
+  if (langs.length) drawLanguageTags(cv, langs);
   branch(cv, by, 8, W - 8);
   leaf(cv, 14, by - 2, 34, 8, -0.5);
   leaf(cv, W - 16, by - 2, 38, 8, Math.PI + 0.55);
@@ -104,12 +130,24 @@ function drawCaterpillar(cv: Canvas, g: Growth, bands: Band[], t: number): void 
         cv.put(ax + face * 2 + k, y - rr - 5, bands[bands.length - 1][0]);
       }
     } else {
-      const body: RGB = i % 2 ? [118, 206, 96] : [150, 226, 112];
-      cv.ellipse(x - r, y - r, x + r, y + r, body);
-      const c = bands[(i - 1) % bands.length][0];
-      cv.put(x, y - r * 0.45, c);
-      cv.put(x + 1, y - r * 0.45, tones(c)[2]);
-      cv.put(x, y - r * 0.45 + 1, tones(c)[0]);
+      if (langs.length) {
+        // every body segment wears one language color, with a light top and a dark belly
+        const c = langs[(i - 1) % langs.length].color;
+        const [dark, base, light] = tones(c);
+        cv.ellipse(x - r, y - r, x + r, y + r, base);
+        cv.put(x - r * 0.35, y - r * 0.55, light);
+        cv.put(x + 0.5, y - r * 0.55, light);
+        cv.put(x - r * 0.35 + 1, y - r * 0.55, light);
+        cv.put(x, y + r * 0.5, dark);
+        cv.put(x + 1, y + r * 0.5, dark);
+      } else {
+        const body: RGB = i % 2 ? [118, 206, 96] : [150, 226, 112];
+        cv.ellipse(x - r, y - r, x + r, y + r, body);
+        const c = bands[(i - 1) % bands.length][0];
+        cv.put(x, y - r * 0.45, c);
+        cv.put(x + 1, y - r * 0.45, tones(c)[2]);
+        cv.put(x, y - r * 0.45 + 1, tones(c)[0]);
+      }
     }
     if (i % 2 === 1) cv.put(x, y + r - 0.5, [250, 170, 70]);
   }
@@ -247,7 +285,7 @@ export function renderFrame(stats: Stats, g: Growth, t: number): Canvas {
   const bands = wingBands(stats.languages);
   const cv = new Canvas(W, H);
   if (g.stage === "egg") drawEgg(cv, g, bands, t);
-  else if (g.stage === "caterpillar") drawCaterpillar(cv, g, bands, t);
+  else if (g.stage === "caterpillar") drawCaterpillar(cv, g, bands, t, topLangs(stats.languages));
   else if (g.stage === "cocoon") drawCocoon(cv, g, bands, t);
   else drawButterfly(cv, g, bands, t, stats.streak);
   return cv;
