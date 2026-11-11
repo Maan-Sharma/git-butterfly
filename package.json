@@ -1,0 +1,37 @@
+{
+  "name": "git-butterfly",
+  "version": "0.1.0",
+  "description": "A pixel-art butterfly that grows with your GitHub contributions",
+  "main": "dist/cli.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "build": "tsc",
+    "start": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "bin": {
+    "git-butterfly": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

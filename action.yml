@@ -1,0 +1,53 @@
+name: Git butterfly
+description: Draw a pixel-art butterfly that grows with your GitHub contributions, as a looping GIF for your profile README.
+branding:
+  icon: feather
+  color: purple
+
+inputs:
+  username:
+    description: GitHub username to draw the butterfly for.
+    required: true
+  token:
+    description: Token used to read contribution data. Use a personal access token (read:user) to include private contributions.
+    required: false
+    default: ${{ github.token }}
+  output:
+    description: Where to write the GIF.
+    required: false
+    default: butterfly/butterfly.gif
+  thresholds:
+    description: Contributions needed for caterpillar,cocoon,butterfly.
+    required: false
+    default: "25,300,800"
+  scale:
+    description: Pixel size multiplier (4 gives a 640x360 GIF).
+    required: false
+    default: "4"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+    - name: Install and build
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci --no-audit --no-fund
+        npm run build
+    - name: Draw the butterfly
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        BUTTERFLY_USER: ${{ inputs.username }}
+        BUTTERFLY_OUT: ${{ inputs.output }}
+        BUTTERFLY_THRESHOLDS: ${{ inputs.thresholds }}
+        BUTTERFLY_SCALE: ${{ inputs.scale }}
+      run: |
+        node "${{ github.action_path }}/dist/cli.js" \
+          --user "$BUTTERFLY_USER" \
+          --out "$BUTTERFLY_OUT" \
+          --thresholds "$BUTTERFLY_THRESHOLDS" \
+          --scale "$BUTTERFLY_SCALE"
