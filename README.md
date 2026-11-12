@@ -97,6 +97,18 @@ npm test          # unit tests
 npm run typecheck
 npm run build
 ```
+## ❤️ Support this project
+
+If you enjoy Git Butterfly and find it useful, consider supporting its development!
+
+Your sponsorship helps me:
+- Maintain and improve Git Butterfly.
+- Build new features and animations.
+- Create more open-source developer tools.
+
+Every bit of support is appreciated. Thank you for helping me keep building! 🦋
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-Maan--Sharma-DB61A2?style=for-the-badge&logo=githubsponsors)](https://github.com/sponsors/Maan-Sharma)
 
 ## Credits
 
