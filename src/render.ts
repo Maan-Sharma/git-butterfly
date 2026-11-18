@@ -154,7 +154,7 @@ function drawCaterpillar(cv: Canvas, g: Growth, bands: Band[], t: number, langs:
 }
 
 // ----------------------------------------------------------------------------- cocoon (chrysalis)
-function drawCocoon(cv: Canvas, g: Growth, bands: Band[], t: number): void {
+function drawCocoon(cv: Canvas, g: Growth, bands: Band[], t: number, langs: Lang[] = []): void {
   const ax = W / 2, ay = 4;
   branch(cv, 2, 24, W - 24);
   leaf(cv, 30, 8, 30, 7, 0.45);
@@ -196,6 +196,8 @@ function drawCocoon(cv: Canvas, g: Growth, bands: Band[], t: number): void {
     if (lx > 0.35 * wmax) return dark;
     return base;
   });
+
+  if (langs.length) drawLanguageTags(cv, langs);
 }
 
 // ----------------------------------------------------------------------------- butterfly
@@ -286,7 +288,7 @@ export function renderFrame(stats: Stats, g: Growth, t: number): Canvas {
   const cv = new Canvas(W, H);
   if (g.stage === "egg") drawEgg(cv, g, bands, t);
   else if (g.stage === "caterpillar") drawCaterpillar(cv, g, bands, t, topLangs(stats.languages));
-  else if (g.stage === "cocoon") drawCocoon(cv, g, bands, t);
+  else if (g.stage === "cocoon") drawCocoon(cv, g, bands, t, topLangs(stats.languages));
   else drawButterfly(cv, g, bands, t, stats.streak);
   return cv;
 }
